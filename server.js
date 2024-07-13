@@ -36,7 +36,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-app.post('/login', (req, res) => {
+app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'admin' && password === 'password') {
     const token = jwt.sign({ id: username }, JWT_SECRET, { expiresIn: 86400 }); // 24 hours
@@ -46,7 +46,7 @@ app.post('/login', (req, res) => {
   }
 });
 
-app.post('/trial-class/register', async (req, res) => {
+app.post('/api/trial-class/register', async (req, res) => {
   try {
     const registration = req.body;
     const docRef = await db.collection('registrations').add(registration);
@@ -56,7 +56,7 @@ app.post('/trial-class/register', async (req, res) => {
   }
 });
 
-app.get('/trial-class/registrations', verifyToken, async (req, res) => {
+app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   try {
     const snapshot = await db.collection('registrations').get();
     const registrations = [];
