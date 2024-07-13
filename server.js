@@ -10,7 +10,7 @@ const serviceAccount = require(process.env.FIREBASE_CONFIG_FILE_PATH);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://nextgen-programmer.firebaseio.com' // Ensure this is your correct database URL
+  databaseURL: 'https://nextgen-programmer.firebaseio.com'
 });
 
 const db = admin.firestore();
@@ -23,15 +23,22 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const JWT_SECRET = 'your_jwt_secret'; // Change this to a secure random string
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(403).json({ message: 'No token provided' });
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(403).json({ message: 'No token provided' });
+  }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(500).json({ message: 'Failed to authenticate token' });
+    if (err) {
+      console.error('Token verification failed:', err);
+      return res.status(401).json({ message: 'Failed to authenticate token' });
+    }
     req.userId = decoded.id;
     next();
   });
@@ -40,7 +47,7 @@ const verifyToken = (req, res, next) => {
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'admin' && password === 'password') {
-    const token = jwt.sign({ id: username }, JWT_SECRET, { expiresIn: 86400 }); // 24 hours
+    const token = jwt.sign({ id: username }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ message: 'Login successful', token });
   } else {
     res.status(401).json({ message: 'Invalid credentials' });
@@ -49,26 +56,48 @@ app.post('/api/login', (req, res) => {
 
 app.post('/api/trial-class/register', async (req, res) => {
   try {
-    const registration = req.body;
+    const registration = {
+      ...req.body,
+      registration_date: admin.firestore.Timestamp.now(),
+      status: 'PENDING'
+    };
     const docRef = await db.collection('registrations').add(registration);
     res.status(201).json({ message: 'Registration successful', registration: { id: docRef.id, ...registration } });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering', error });
+    console.error('Error registering:', error);
+    res.status(500).json({ message: 'Error registering', error: error.message });
   }
 });
 
 app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   try {
-    const snapshot = await db.collection('registrations').get();
+    const snapshot = await db.collection('registrations').orderBy('registration_date', 'desc').get();
     const registrations = [];
     snapshot.forEach(doc => {
-      registrations.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      registrations.push({
+        id: doc.id,
+        ...data,
+        registration_date: data.registration_date.toDate().toISOString()
+      });
     });
     res.json(registrations);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching registrations', error });
+    console.error('Error fetching registrations:', error);
+    res.status(500).json({ message: 'Error fetching registrations', error: error.message });
   }
 });
 
-const PORT = 3001;
+app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('registrations').doc(id).update({ status: 'CONFIRMED' });
+    res.json({ message: 'Registration confirmed successfully' });
+  } catch (error) {
+    console.error('Error confirming registration:', error);
+    res.status(500).json({ message: 'Error confirming registration', error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
