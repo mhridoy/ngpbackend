@@ -3,9 +3,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
+require('dotenv').config();
 
 // Initialize Firebase Admin SDK
-const serviceAccount = require('/Users/moshiur/Desktop/TNGP/backend/firebase/firebasefile.json');
+const serviceAccount = require(process.env.FIREBASE_CONFIG_FILE_PATH);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
