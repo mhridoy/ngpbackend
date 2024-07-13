@@ -45,14 +45,18 @@ const verifyToken = (req, res, next) => {
 };
 
 app.post('/api/login', (req, res) => {
+  console.log('Login attempt:', req.body);
   const { username, password } = req.body;
   if (username === 'admin' && password === 'password') {
     const token = jwt.sign({ id: username }, JWT_SECRET, { expiresIn: '24h' });
+    console.log('Login successful, token:', token);
     res.json({ message: 'Login successful', token });
   } else {
+    console.log('Invalid credentials');
     res.status(401).json({ message: 'Invalid credentials' });
   }
 });
+
 
 app.post('/api/trial-class/register', async (req, res) => {
   try {
