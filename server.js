@@ -44,6 +44,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
+// Login endpoint
 app.post('/api/login', (req, res) => {
   console.log('Login attempt:', req.body);
   const { username, password } = req.body;
@@ -57,14 +58,29 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-
+// Register a new trial class with duplicate check
 app.post('/api/trial-class/register', async (req, res) => {
   try {
+    const { student_name, age, parents_name, parents_mobile } = req.body;
+
+    // Check if a registration with the same student_name, age, parents_name, and parents_mobile already exists
+    const existingRegistrationQuery = await db.collection('registrations')
+      .where('student_name', '==', student_name)
+      .where('age', '==', age)
+      .where('parents_name', '==', parents_name)
+      .where('parents_mobile', '==', parents_mobile)
+      .get();
+
+    if (!existingRegistrationQuery.empty) {
+      return res.status(400).json({ message: 'This registration already exists' });
+    }
+
     const registration = {
       ...req.body,
       registration_date: admin.firestore.Timestamp.now(),
       status: 'PENDING'
     };
+    
     const docRef = await db.collection('registrations').add(registration);
     res.status(201).json({ message: 'Registration successful', registration: { id: docRef.id, ...registration } });
   } catch (error) {
@@ -73,6 +89,7 @@ app.post('/api/trial-class/register', async (req, res) => {
   }
 });
 
+// Fetch all trial class registrations
 app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   try {
     const snapshot = await db.collection('registrations').orderBy('registration_date', 'desc').get();
@@ -92,6 +109,7 @@ app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   }
 });
 
+// Confirm a registration
 app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -102,6 +120,8 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
     res.status(500).json({ message: 'Error confirming registration', error: error.message });
   }
 });
+
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
