@@ -126,7 +126,7 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
   }
 });
 
-//Serve dynamic metadata for blog posts
+// Serve dynamic metadata for blog posts
 app.get('/blog/:slug', async (req, res) => {
   const { slug } = req.params;
 
@@ -139,12 +139,15 @@ app.get('/blog/:slug', async (req, res) => {
 
   const blogData = blogQuerySnapshot.docs[0].data();
 
+  // Construct the correct full URL for the blog post
+  const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
   // Render the HTML template with dynamic Open Graph metadata
   res.render('blog-post', {
     title: blogData.title,
     description: blogData.description,
     imageUrl: blogData.imageUrl,
-    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`, // This ensures the correct blog post URL is used for og:url
+    url: fullUrl, // This ensures the correct blog post URL is used for og:url
     fbAppId: process.env.FB_APP_ID || 'YOUR_FB_APP_ID_HERE', // Replace with your Facebook App ID
   });
 });
