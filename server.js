@@ -175,19 +175,42 @@ app.get('/blog/:slug', async (req, res) => {
     const blogData = blogs.find((blog) => blog.slug === slug);
 
     if (!blogData) {
-      return res.status(404).send('Blog post not found');
+      // If blog post not found, serve the React app's index.html
+      return res.sendFile(path.join(__dirname, 'build', 'index.html'));
     }
 
-    // Construct the full URL for the blog post
-    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    // Read the React app's index.html file
+    fs.readFile(path.join(__dirname, 'build', 'index.html'), 'utf8', (err, htmlData) => {
+      if (err) {
+        console.error('Error reading index.html:', err);
+        return res.status(500).send('Internal Server Error');
+      }
 
-    // Render the HTML template with dynamic Open Graph metadata
-    res.render('blog-post', {
-      title: blogData.title,
-      description: blogData.description,
-      imageUrl: blogData.imageUrl,
-      url: fullUrl,
-      fbAppId: process.env.FB_APP_ID || 'YOUR_FB_APP_ID_HERE',
+      // Inject the dynamic Open Graph metadata into the index.html
+      htmlData = htmlData
+        .replace(
+          '<title>NextGen Programmer</title>',
+          `<title>${blogData.title}</title>`
+        )
+        .replace(
+          '<meta property="og:title" content="NextGen Programmer">',
+          `<meta property="og:title" content="${blogData.title}">`
+        )
+        .replace(
+          '<meta property="og:description" content="NextGen Programmer is an online platform...">',
+          `<meta property="og:description" content="${blogData.description}">`
+        )
+        .replace(
+          '<meta property="og:image" content="/logo192.png">',
+          `<meta property="og:image" content="${blogData.imageUrl}">`
+        )
+        .replace(
+          '<meta property="og:url" content="https://nextgenprogrammer.com">',
+          `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
+        );
+
+      // Send the modified index.html file
+      res.send(htmlData);
     });
   } catch (error) {
     console.error('Error fetching blog data:', error);
