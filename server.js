@@ -155,6 +155,11 @@ const createSlug = (title) => {
 // --- Dynamic Meta Data for Blog Post ---
 app.get('/blog/:slug', async (req, res) => {
   const { slug } = req.params;
+  app.use((req, res, next) => {
+    console.log(`Request URL: ${req.url}`);
+    console.log(`User-Agent: ${req.headers['user-agent']}`);
+    next();
+  });
   // Serve static files
 app.use(express.static(path.join(__dirname, 'build')));
 // Catch-all route
@@ -220,7 +225,9 @@ app.get('*', (req, res) => {
         const ogImageTagBefore = htmlData.match(/<meta\s+property=["']og:image["'][^>]*>/i);
         console.log('OG Image Tag Before Replacement:', ogImageTagBefore ? ogImageTagBefore[0] : 'Not found');
 
+        app.set('trust proxy', true); // If behind a proxy/load balancer
 
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
         .replace(/<title>.*<\/title>/i, `<title>${blogData.title}</title>`)
