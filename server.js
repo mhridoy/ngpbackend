@@ -126,7 +126,7 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
   }
 });
 
-// Serve dynamic metadata for blog posts
+//Serve dynamic metadata for blog posts
 app.get('/blog/:slug', async (req, res) => {
   const { slug } = req.params;
 
@@ -144,7 +144,8 @@ app.get('/blog/:slug', async (req, res) => {
     title: blogData.title,
     description: blogData.description,
     imageUrl: blogData.imageUrl,
-    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`, // This ensures the correct blog post URL is used for og:url
+    fbAppId: process.env.FB_APP_ID || 'YOUR_FB_APP_ID_HERE', // Replace with your Facebook App ID
   });
 });
 
