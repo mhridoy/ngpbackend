@@ -202,6 +202,10 @@ app.get('/blog/:slug', async (req, res) => {
       htmlData = htmlData
         .replace(/<title>.*<\/title>/i, `<title>${blogData.title}</title>`)
         .replace(
+          '<meta name="description" content="extGen Programmer is Bangladesh s No.1 programming school, offering the best coding platform in Feni and beyond. Empowering young minds through innovative coding education.">',
+          `<meta name="description" content="${blogData.description}">`
+        )
+        .replace(
           '<meta property="og:title" content="NextGen Programmer - Bangladesh s No.1 Programming School">',
           `<meta property="og:title" content="${blogData.title}">`
         )
