@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
-const path = require('path'); // Required for views
+const path = require('path');
 const axios = require('axios');
 const Papa = require('papaparse');
 require('dotenv').config();
@@ -21,19 +20,20 @@ const app = express();
 
 // Set view engine to EJS (For dynamic metadata templates)
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Set views folder for EJS
+app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
@@ -56,7 +56,7 @@ const verifyToken = (req, res, next) => {
 app.post('/api/login', (req, res) => {
   console.log('Login attempt:', req.body);
   const { username, password } = req.body;
-  if (username === 'admin' && password === 'password') {
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     const token = jwt.sign({ id: username }, JWT_SECRET, { expiresIn: '24h' });
     console.log('Login successful, token:', token);
     res.json({ message: 'Login successful', token });
@@ -71,7 +71,7 @@ app.post('/api/trial-class/register', async (req, res) => {
   try {
     const { student_name, age, parents_name, parents_mobile } = req.body;
 
-    // Check if a registration with the same student_name, age, parents_name, and parents_mobile already exists
+    // Check for existing registration
     const existingRegistrationQuery = await db
       .collection('registrations')
       .where('student_name', '==', student_name)
@@ -104,16 +104,15 @@ app.post('/api/trial-class/register', async (req, res) => {
 // Fetch all trial class registrations
 app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   try {
-    const snapshot = await db.collection('registrations').orderBy('registration_date', 'desc').get();
-    const registrations = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      registrations.push({
-        id: doc.id,
-        ...data,
-        registration_date: data.registration_date.toDate().toISOString(),
-      });
-    });
+    const snapshot = await db
+      .collection('registrations')
+      .orderBy('registration_date', 'desc')
+      .get();
+    const registrations = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      registration_date: doc.data().registration_date.toDate().toISOString(),
+    }));
     res.json(registrations);
   } catch (error) {
     console.error('Error fetching registrations:', error);
@@ -138,7 +137,7 @@ const createSlug = (title) => {
   return title
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\u0000-\uFFFF]/g, '') // Remove special characters, keep Unicode
+    .replace(/[^\u0000-\uFFFF]/g, '')
     .toLowerCase();
 };
 
@@ -148,8 +147,8 @@ app.get('/blog/:slug', async (req, res) => {
 
   try {
     // Fetch blog data from Google Sheets
-    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE'; // Your Google Sheet ID
-    const sheetName = 'Sheet1'; // The name of the sheet/tab
+    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE';
+    const sheetName = 'Sheet1';
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
 
     const response = await axios.get(url);
@@ -188,7 +187,7 @@ app.get('/blog/:slug', async (req, res) => {
       description: blogData.description,
       imageUrl: blogData.imageUrl,
       url: fullUrl,
-      fbAppId: process.env.FB_APP_ID || 'YOUR_FB_APP_ID_HERE', // Replace with your Facebook App ID
+      fbAppId: process.env.FB_APP_ID || 'YOUR_FB_APP_ID_HERE',
     });
   } catch (error) {
     console.error('Error fetching blog data:', error);
@@ -200,7 +199,7 @@ app.get('/blog/:slug', async (req, res) => {
 // Serve React build files from /build folder
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Catch-all route to serve React app for other routes (for client-side React routing)
+// Catch-all route to serve React app for other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
