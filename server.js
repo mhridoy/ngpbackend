@@ -155,7 +155,12 @@ const createSlug = (title) => {
 // --- Dynamic Meta Data for Blog Post ---
 app.get('/blog/:slug', async (req, res) => {
   const { slug } = req.params;
-
+  // Serve static files
+app.use(express.static(path.join(__dirname, 'build')));
+// Catch-all route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
   try {
     // Fetch blog data from Google Sheets
     const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE';
@@ -236,7 +241,7 @@ app.get('/blog/:slug', async (req, res) => {
           `<meta property="og:image" content="${blogData.imageUrl}">`
         )
         .replace(
-          '<meta property="og:url" content="https://nextgenprogrammer.com">',
+          /<meta property="og:url" content="[^"]*">/i,
           `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
         );
          // Extract the og:image meta tag after replacement
