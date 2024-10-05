@@ -211,14 +211,14 @@ app.get('/blog/:slug', async (req, res) => {
           return res.status(500).send('Internal Server Error');
         }
 
-        // Create the dynamic meta tags
+            // Create the dynamic meta tags
         const dynamicMetaTags = `
-          <title>${blogData.title}</title>
-          <meta property="og:title" content="${blogData.title}">
-          <meta property="og:description" content="${blogData.description}">
-          <meta property="og:image" content="${imageUrl}">
-          <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
-          <meta property="og:type" content="article">
+        <title>${blogData.title}</title>
+        <meta property="og:title" content="${blogData.title}">
+        <meta property="og:description" content="${blogData.description}">
+        <meta property="og:image" content="${imageUrl}">
+        <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
+        <meta property="og:type" content="article">
         `;
 
         // Inject the dynamic meta tags into the placeholder
