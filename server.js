@@ -147,10 +147,9 @@ app.put(
 const createSlug = (title) => {
   return title
     .trim()
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+    .replace(/\s+/g, '-')
+    .replace(/[^\u0000-\uFFFF]/g, '')
+    .toLowerCase();
 };
 
 // --- Dynamic Meta Data for Blog Post ---
@@ -191,43 +190,39 @@ app.get('/blog/:slug', async (req, res) => {
       return res.sendFile(path.join(__dirname, 'build', 'index.html'));
     }
 
-    // Ensure image URL is absolute and uses HTTPS
-    let imageUrl = blogData.imageUrl;
-    if (imageUrl) {
-      if (imageUrl.startsWith('//')) {
-        imageUrl = 'https:' + imageUrl;
-      } else if (!imageUrl.startsWith('http')) {
-        imageUrl = 'https://' + imageUrl;
-      }
-    }
-
     // Read the React app's index.html file
-    fs.readFile(
-      path.join(__dirname, 'build', 'index.html'),
-      'utf8',
-      (err, htmlData) => {
-        if (err) {
-          console.error('Error reading index.html:', err);
-          return res.status(500).send('Internal Server Error');
-        }
-
-            // Create the dynamic meta tags
-        const dynamicMetaTags = `
-        <title>${blogData.title}</title>
-        <meta property="og:title" content="${blogData.title}">
-        <meta property="og:description" content="${blogData.description}">
-        <meta property="og:image" content="${imageUrl}">
-        <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
-        <meta property="og:type" content="article">
-        `;
-
-        // Inject the dynamic meta tags into the placeholder
-        htmlData = htmlData.replace('<!-- BLOG_META_TAGS -->', dynamicMetaTags);
-
-        // Send the modified index.html file
-        res.send(htmlData);
+    fs.readFile(path.join(__dirname, 'build', 'index.html'), 'utf8', (err, htmlData) => {
+      if (err) {
+        console.error('Error reading index.html:', err);
+        return res.status(500).send('Internal Server Error');
       }
-    );
+
+      // Inject the dynamic Open Graph metadata into the index.html
+      htmlData = htmlData
+        .replace(
+          '<title>NextGen Programmer</title>',
+          `<title>${blogData.title}</title>`
+        )
+        .replace(
+          '<meta property="og:title" content="NextGen Programmer">',
+          `<meta property="og:title" content="${blogData.title}">`
+        )
+        .replace(
+          '<meta property="og:description" content="NextGen Programmer is an online platform...">',
+          `<meta property="og:description" content="${blogData.description}">`
+        )
+        .replace(
+          '<meta property="og:image" content="/logo192.png">',
+          `<meta property="og:image" content="${blogData.imageUrl}">`
+        )
+        .replace(
+          '<meta property="og:url" content="https://nextgenprogrammer.com">',
+          `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
+        );
+
+      // Send the modified index.html file
+      res.send(htmlData);
+    });
   } catch (error) {
     console.error('Error fetching blog data:', error);
     res.status(500).send('Internal Server Error');
