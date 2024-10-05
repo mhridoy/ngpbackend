@@ -200,10 +200,7 @@ app.get('/blog/:slug', async (req, res) => {
 
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
-        .replace(
-          '<title>NextGen Programmer</title>',
-          `<title>${blogData.title}</title>`
-        )
+        .replace(/<title>.*<\/title>/i, `<title>${blogData.title}</title>`)
         .replace(
           '<meta property="og:title" content="NextGen Programmer - Bangladesh s No.1 Programming School">',
           `<meta property="og:title" content="${blogData.title}">`
