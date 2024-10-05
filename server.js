@@ -124,18 +124,22 @@ app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
 });
 
 // Confirm a registration
-app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.collection('registrations').doc(id).update({ status: 'CONFIRMED' });
-    res.json({ message: 'Registration confirmed successfully' });
-  } catch (error) {
-    console.error('Error confirming registration:', error);
-    res
-      .status(500)
-      .json({ message: 'Error confirming registration', error: error.message });
+app.put(
+  '/api/trial-class/registrations/:id/confirm',
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      await db.collection('registrations').doc(id).update({ status: 'CONFIRMED' });
+      res.json({ message: 'Registration confirmed successfully' });
+    } catch (error) {
+      console.error('Error confirming registration:', error);
+      res
+        .status(500)
+        .json({ message: 'Error confirming registration', error: error.message });
+    }
   }
-});
+);
 
 // Utility function to create a slug from the title
 const createSlug = (title) => {
@@ -210,24 +214,28 @@ app.get('/blog/:slug', async (req, res) => {
         // Inject the dynamic Open Graph metadata into the index.html
         htmlData = htmlData
           .replace(
-            '<title>NextGen Programmer</title>',
+            /<title>.*<\/title>/i,
             `<title>${blogData.title}</title>`
           )
           .replace(
-            '<meta property="og:title" content="NextGen Programmer">',
+            /<meta property="og:title" content="[^"]*">/i,
             `<meta property="og:title" content="${blogData.title}">`
           )
           .replace(
-            '<meta property="og:description" content="NextGen Programmer is an online platform...">',
+            /<meta property="og:description" content="[^"]*">/i,
             `<meta property="og:description" content="${blogData.description}">`
           )
           .replace(
-            '<meta property="og:image" content="/logo192.png">',
+            /<meta property="og:image" content="[^"]*">/i,
             `<meta property="og:image" content="${imageUrl}">`
           )
           .replace(
-            '<meta property="og:url" content="https://nextgenprogrammer.com">',
+            /<meta property="og:url" content="[^"]*">/i,
             `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
+          )
+          .replace(
+            /<meta property="og:type" content="[^"]*">/i,
+            `<meta property="og:type" content="article">`
           );
 
         // Send the modified index.html file
