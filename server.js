@@ -214,7 +214,7 @@ app.get('/blog/:slug', async (req, res) => {
           `<meta property="og:description" content="${blogData.description}">`
         )
         .replace(
-          '<meta property="og:image" content="https://www.nextgenprogrammer.com/images/nextgen-logo.png">',
+          /<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i,
           `<meta property="og:image" content="${blogData.imageUrl}">`
         )
         .replace(
