@@ -204,15 +204,15 @@ app.get('/blog/:slug', async (req, res) => {
           `<title>${blogData.title}</title>`
         )
         .replace(
-          '<meta property="og:title" content="NextGen Programmer">',
+          '<meta property="og:title" content="NextGen Programmer - Bangladesh s No.1 Programming School">',
           `<meta property="og:title" content="${blogData.title}">`
         )
         .replace(
-          '<meta property="og:description" content="NextGen Programmer is an online platform...">',
+          '<meta property="og:description" content="NextGen Programmer is the best coding platform in Bangladesh, empowering young minds through innovative coding education.">',
           `<meta property="og:description" content="${blogData.description}">`
         )
         .replace(
-          '<meta property="og:image" content="/logo192.png">',
+          '<meta property="og:image" content="https://www.nextgenprogrammer.com/images/nextgen-logo.png">',
           `<meta property="og:image" content="${blogData.imageUrl}">`
         )
         .replace(
