@@ -196,7 +196,8 @@ app.get('/blog/:slug', async (req, res) => {
         console.error('Error reading index.html:', err);
         return res.status(500).send('Internal Server Error');
       }
-      console.log(blogData.imageUrl)
+      // Before replacement
+console.log('Before og:image replacement:', htmlData.includes('og:image'));
 
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
@@ -221,7 +222,8 @@ app.get('/blog/:slug', async (req, res) => {
           '<meta property="og:url" content="https://nextgenprogrammer.com">',
           `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
         );
-
+        // After replacement
+console.log('After og:image replacement:', htmlData.includes(blogData.imageUrl));
       // Send the modified index.html file
       res.send(htmlData);
     });
