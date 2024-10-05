@@ -196,8 +196,25 @@ app.get('/blog/:slug', async (req, res) => {
         console.error('Error reading index.html:', err);
         return res.status(500).send('Internal Server Error');
       }
-      // Before replacement
-console.log('Before og:image replacement:', htmlData.includes('og:image'));
+      // Ensure imageUrl is correctly formatted
+      let imageUrl = blogData.imageUrl;
+      if (imageUrl) {
+        if (imageUrl.startsWith('//')) {
+          imageUrl = 'https:' + imageUrl;
+        } else if (!imageUrl.startsWith('http')) {
+          imageUrl = 'https://' + imageUrl;
+        }
+      } else {
+        // Default image if imageUrl is undefined or null
+        imageUrl = 'https://www.nextgenprogrammer.com/images/nextgen-logo.png';
+      }
+
+     
+
+        // Extract the og:image meta tag before replacement
+        const ogImageTagBefore = htmlData.match(/<meta\s+property=["']og:image["'][^>]*>/i);
+        console.log('OG Image Tag Before Replacement:', ogImageTagBefore ? ogImageTagBefore[0] : 'Not found');
+
 
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
@@ -222,8 +239,9 @@ console.log('Before og:image replacement:', htmlData.includes('og:image'));
           '<meta property="og:url" content="https://nextgenprogrammer.com">',
           `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
         );
-        // After replacement
-console.log('After og:image replacement:', htmlData.includes(blogData.imageUrl));
+         // Extract the og:image meta tag after replacement
+        const ogImageTagAfter = htmlData.match(/<meta\s+property=["']og:image["'][^>]*>/i);
+        console.log('OG Image Tag After Replacement:', ogImageTagAfter ? ogImageTagAfter[0] : 'Not found');
       // Send the modified index.html file
       res.send(htmlData);
     });
