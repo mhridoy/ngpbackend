@@ -19,10 +19,6 @@ admin.initializeApp({
 const db = admin.firestore();
 const app = express();
 
-// Set view engine to EJS (For dynamic metadata templates)
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -34,7 +30,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  const authHeader =
+    req.headers['authorization'] || req.headers['Authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
@@ -112,12 +109,17 @@ app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
     const registrations = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      registration_date: doc.data().registration_date.toDate().toISOString(),
+      registration_date: doc
+        .data()
+        .registration_date.toDate()
+        .toISOString(),
     }));
     res.json(registrations);
   } catch (error) {
     console.error('Error fetching registrations:', error);
-    res.status(500).json({ message: 'Error fetching registrations', error: error.message });
+    res
+      .status(500)
+      .json({ message: 'Error fetching registrations', error: error.message });
   }
 });
 
@@ -129,7 +131,9 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
     res.json({ message: 'Registration confirmed successfully' });
   } catch (error) {
     console.error('Error confirming registration:', error);
-    res.status(500).json({ message: 'Error confirming registration', error: error.message });
+    res
+      .status(500)
+      .json({ message: 'Error confirming registration', error: error.message });
   }
 });
 
@@ -137,9 +141,10 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
 const createSlug = (title) => {
   return title
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\u0000-\uFFFF]/g, '')
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
 };
 
 // --- Dynamic Meta Data for Blog Post ---
@@ -148,8 +153,8 @@ app.get('/blog/:slug', async (req, res) => {
 
   try {
     // Fetch blog data from Google Sheets
-    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE';
-    const sheetName = 'Sheet1';
+    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE'; // Your Google Sheet ID
+    const sheetName = 'Sheet1'; // The name of the sheet/tab
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
 
     const response = await axios.get(url);
@@ -180,39 +185,55 @@ app.get('/blog/:slug', async (req, res) => {
       return res.sendFile(path.join(__dirname, 'build', 'index.html'));
     }
 
-    // Read the React app's index.html file
-    fs.readFile(path.join(__dirname, 'build', 'index.html'), 'utf8', (err, htmlData) => {
-      if (err) {
-        console.error('Error reading index.html:', err);
-        return res.status(500).send('Internal Server Error');
+    // Ensure image URL is absolute and uses HTTPS
+    let imageUrl = blogData.imageUrl;
+    if (imageUrl) {
+      if (imageUrl.startsWith('//')) {
+        // Add protocol if missing
+        imageUrl = 'https:' + imageUrl;
+      } else if (!imageUrl.startsWith('http')) {
+        // Assume HTTPS if protocol is missing
+        imageUrl = 'https://' + imageUrl;
       }
+    }
 
-      // Inject the dynamic Open Graph metadata into the index.html
-      htmlData = htmlData
-        .replace(
-          '<title>NextGen Programmer</title>',
-          `<title>${blogData.title}</title>`
-        )
-        .replace(
-          '<meta property="og:title" content="NextGen Programmer">',
-          `<meta property="og:title" content="${blogData.title}">`
-        )
-        .replace(
-          '<meta property="og:description" content="NextGen Programmer is an online platform...">',
-          `<meta property="og:description" content="${blogData.description}">`
-        )
-        .replace(
-          '<meta property="og:image" content="/logo192.png">',
-          `<meta property="og:image" content="${blogData.imageUrl}">`
-        )
-        .replace(
-          '<meta property="og:url" content="https://nextgenprogrammer.com">',
-          `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
-        );
+    // Read the React app's index.html file
+    fs.readFile(
+      path.join(__dirname, 'build', 'index.html'),
+      'utf8',
+      (err, htmlData) => {
+        if (err) {
+          console.error('Error reading index.html:', err);
+          return res.status(500).send('Internal Server Error');
+        }
 
-      // Send the modified index.html file
-      res.send(htmlData);
-    });
+        // Inject the dynamic Open Graph metadata into the index.html
+        htmlData = htmlData
+          .replace(
+            '<title>NextGen Programmer</title>',
+            `<title>${blogData.title}</title>`
+          )
+          .replace(
+            '<meta property="og:title" content="NextGen Programmer">',
+            `<meta property="og:title" content="${blogData.title}">`
+          )
+          .replace(
+            '<meta property="og:description" content="NextGen Programmer is an online platform...">',
+            `<meta property="og:description" content="${blogData.description}">`
+          )
+          .replace(
+            '<meta property="og:image" content="/logo192.png">',
+            `<meta property="og:image" content="${imageUrl}">`
+          )
+          .replace(
+            '<meta property="og:url" content="https://nextgenprogrammer.com">',
+            `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
+          );
+
+        // Send the modified index.html file
+        res.send(htmlData);
+      }
+    );
   } catch (error) {
     console.error('Error fetching blog data:', error);
     res.status(500).send('Internal Server Error');
