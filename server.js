@@ -141,6 +141,8 @@ app.put(
   }
 );
 
+
+
 // Utility function to create a slug from the title
 const createSlug = (title) => {
   return title
@@ -157,8 +159,8 @@ app.get('/blog/:slug', async (req, res) => {
 
   try {
     // Fetch blog data from Google Sheets
-    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE'; // Your Google Sheet ID
-    const sheetName = 'Sheet1'; // The name of the sheet/tab
+    const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE';
+    const sheetName = 'Sheet1';
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
 
     const response = await axios.get(url);
@@ -193,10 +195,8 @@ app.get('/blog/:slug', async (req, res) => {
     let imageUrl = blogData.imageUrl;
     if (imageUrl) {
       if (imageUrl.startsWith('//')) {
-        // Add protocol if missing
         imageUrl = 'https:' + imageUrl;
       } else if (!imageUrl.startsWith('http')) {
-        // Assume HTTPS if protocol is missing
         imageUrl = 'https://' + imageUrl;
       }
     }
@@ -211,32 +211,18 @@ app.get('/blog/:slug', async (req, res) => {
           return res.status(500).send('Internal Server Error');
         }
 
-        // Inject the dynamic Open Graph metadata into the index.html
-        htmlData = htmlData
-          .replace(
-            /<title>.*<\/title>/i,
-            `<title>${blogData.title}</title>`
-          )
-          .replace(
-            /<meta property="og:title" content="[^"]*">/i,
-            `<meta property="og:title" content="${blogData.title}">`
-          )
-          .replace(
-            /<meta property="og:description" content="[^"]*">/i,
-            `<meta property="og:description" content="${blogData.description}">`
-          )
-          .replace(
-            /<meta property="og:image" content="[^"]*">/i,
-            `<meta property="og:image" content="${imageUrl}">`
-          )
-          .replace(
-            /<meta property="og:url" content="[^"]*">/i,
-            `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
-          )
-          .replace(
-            /<meta property="og:type" content="[^"]*">/i,
-            `<meta property="og:type" content="article">`
-          );
+        // Create the dynamic meta tags
+        const dynamicMetaTags = `
+          <title>${blogData.title}</title>
+          <meta property="og:title" content="${blogData.title}">
+          <meta property="og:description" content="${blogData.description}">
+          <meta property="og:image" content="${imageUrl}">
+          <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
+          <meta property="og:type" content="article">
+        `;
+
+        // Inject the dynamic meta tags into the placeholder
+        htmlData = htmlData.replace('<!-- BLOG_META_TAGS -->', dynamicMetaTags);
 
         // Send the modified index.html file
         res.send(htmlData);
