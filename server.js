@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
+const path = require('path'); // Required for views
 require('dotenv').config();
 
 // Initialize Firebase Admin SDK
@@ -16,6 +17,10 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const app = express();
+
+// Set view engine to EJS
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views')); // Set views folder for EJS
 
 // Middleware
 app.use(cors());
@@ -121,7 +126,30 @@ app.put('/api/trial-class/registrations/:id/confirm', verifyToken, async (req, r
   }
 });
 
+// Serve dynamic metadata for blog posts
+app.get('/blog/:slug', async (req, res) => {
+  const { slug } = req.params;
 
+  // Fetch the blog post by slug from Firestore
+  const blogQuerySnapshot = await db.collection('blogs').where('slug', '==', slug).get();
+
+  if (blogQuerySnapshot.empty) {
+    return res.status(404).send('Blog post not found');
+  }
+
+  const blogData = blogQuerySnapshot.docs[0].data();
+
+  // Render the HTML template with dynamic Open Graph metadata
+  res.render('blog-post', {
+    title: blogData.title,
+    description: blogData.description,
+    imageUrl: blogData.imageUrl,
+    url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+  });
+});
+
+// Serve static files (for general static assets)
+app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
