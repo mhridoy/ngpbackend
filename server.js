@@ -196,6 +196,7 @@ app.get('/blog/:slug', async (req, res) => {
         console.error('Error reading index.html:', err);
         return res.status(500).send('Internal Server Error');
       }
+      console.log(blogData.imageUrl)
 
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
