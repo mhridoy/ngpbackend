@@ -30,8 +30,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const authHeader =
-    req.headers['authorization'] || req.headers['Authorization'];
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
@@ -46,6 +45,58 @@ const verifyToken = (req, res, next) => {
     req.userId = decoded.id;
     next();
   });
+};
+
+// --- Facebook Webhook Routes ---
+
+const VERIFY_TOKEN = 'EAAHeg1KGeVMBOZCGfBjghCcZCgfn9ydyv6kBF13QmeoZAZA8xNPSwNK7fah3W0U5r6ZCnNKZAH1iGufwbMZCGP3bHmnuoyZCNZBOp15D8LfHOwlzXDA8BU6eEOXfxmPCX5OEQZCAYxB9wlI7BJdSjUi4qivSpQar1a8ShjvSXoeYw2GfZAPEYKzlGEv05Ae1ewrbVDZAN5rsMuB2xXLWZB0dE'; // Set your verification token
+
+// Webhook verification route (GET request)
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  // Verifying the token
+  if (mode && token === VERIFY_TOKEN) {
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// Webhook event handling (POST request)
+app.post('/webhook', (req, res) => {
+  const body = req.body;
+
+  if (body.object === 'page') {
+    body.entry.forEach(entry => {
+      const webhookEvent = entry.messaging[0];
+      console.log('Received a webhook event:', webhookEvent);
+
+      // You can handle different events here, such as receiving messages, etc.
+      // For example, respond with a thank you message after form submission
+    });
+    res.status(200).send('EVENT_RECEIVED');
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+// Function to send Facebook Messenger message
+const sendFacebookMessage = async (recipientId, message) => {
+  const token = process.env.PAGE_ACCESS_TOKEN; // Your Facebook page access token
+  const url = `https://graph.facebook.com/v12.0/me/messages?access_token=${token}`;
+  
+  try {
+    await axios.post(url, {
+      recipient: { id: recipientId },
+      message: { text: message }
+    });
+    console.log('Message sent successfully!');
+  } catch (error) {
+    console.error('Error sending message:', error.response ? error.response.data : error.message);
+  }
 };
 
 // --- Auth & API Endpoints ---
@@ -93,6 +144,11 @@ app.post('/api/trial-class/register', async (req, res) => {
       message: 'Registration successful',
       registration: { id: docRef.id, ...registration },
     });
+
+    // Send Facebook Messenger message after successful registration
+    const psid = 'USER_PSID'; // You need to get the user's PSID here
+    await sendFacebookMessage(psid, 'Thank you for registering for the free class!');
+
   } catch (error) {
     console.error('Error registering:', error);
     res.status(500).json({ message: 'Error registering', error: error.message });
@@ -109,10 +165,7 @@ app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
     const registrations = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      registration_date: doc
-        .data()
-        .registration_date.toDate()
-        .toISOString(),
+      registration_date: doc.data().registration_date.toDate().toISOString(),
     }));
     res.json(registrations);
   } catch (error) {
