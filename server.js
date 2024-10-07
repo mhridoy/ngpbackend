@@ -49,7 +49,7 @@ const verifyToken = (req, res, next) => {
 
 // --- Facebook Webhook Routes ---
 
-const VERIFY_TOKEN = 'EAAHeg1KGeVMBOZCGfBjghCcZCgfn9ydyv6kBF13QmeoZAZA8xNPSwNK7fah3W0U5r6ZCnNKZAH1iGufwbMZCGP3bHmnuoyZCNZBOp15D8LfHOwlzXDA8BU6eEOXfxmPCX5OEQZCAYxB9wlI7BJdSjUi4qivSpQar1a8ShjvSXoeYw2GfZAPEYKzlGEv05Ae1ewrbVDZAN5rsMuB2xXLWZB0dE'; // Set your verification token
+const VERIFY_TOKEN = 'binarybeats'; // Set your verification token
 
 // Webhook verification route (GET request)
 app.get('/webhook', (req, res) => {
