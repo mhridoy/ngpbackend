@@ -148,14 +148,15 @@ app.post('/api/trial-class/register', async (req, res) => {
     });
 
     // Send Facebook Messenger message after successful registration
-    const psid = 'USER_PSID'; // You need to get the user's PSID here
-    await sendFacebookMessage(psid, 'Thank you for registering for the free class!');
+    const psid = 'USER_PSID'; // You need to dynamically fetch or store the user's PSID
+    await sendFacebookMessage(psid, 'রেজিস্ট্রেশন সফল!, ফ্রি ক্লাসের জন্য রেজিস্ট্রেশন করার জন্য ধন্যবাদ। আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।');
 
   } catch (error) {
     console.error('Error registering:', error);
     res.status(500).json({ message: 'Error registering', error: error.message });
   }
 });
+
 
 // Fetch all trial class registrations
 app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
