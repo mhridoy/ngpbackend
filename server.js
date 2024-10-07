@@ -77,8 +77,16 @@ app.post('/api/webhook', (req, res) => {
 
   if (body.object === 'page') {
     body.entry.forEach(entry => {
-      const webhookEvent = entry.messaging[0];
-      console.log('Received a webhook event:', webhookEvent);
+      entry.messaging.forEach(event => {
+        if (event.sender && event.sender.id) {
+          const psid = event.sender.id;  // Capture the PSID (Page-Scoped ID)
+          console.log('PSID:', psid);
+
+          // You can now store or use this PSID to send messages later
+          // For testing purposes, send a welcome message directly
+          sendFacebookMessage(psid, 'Welcome to our page! How can we assist you today?');
+        }
+      });
     });
     res.status(200).send('EVENT_RECEIVED');
   } else {
@@ -88,6 +96,11 @@ app.post('/api/webhook', (req, res) => {
 
 // Function to send Facebook Messenger message
 const sendFacebookMessage = async (recipientId, message) => {
+  if (!recipientId || typeof recipientId !== 'string') {
+    console.error('Invalid recipient ID');
+    return;
+  }
+
   const token = process.env.PAGE_ACCESS_TOKEN; // Your Facebook page access token
   const url = `https://graph.facebook.com/v12.0/me/messages?access_token=${token}`;
   
@@ -101,6 +114,7 @@ const sendFacebookMessage = async (recipientId, message) => {
     console.error('Error sending message:', error.response ? error.response.data : error.message);
   }
 };
+
 // --- Auth & API Endpoints ---
 
 // Login endpoint
@@ -157,7 +171,6 @@ app.post('/api/trial-class/register', async (req, res) => {
   }
 });
 
-
 // Fetch all trial class registrations
 app.get('/api/trial-class/registrations', verifyToken, async (req, res) => {
   try {
@@ -197,8 +210,6 @@ app.put(
   }
 );
 
-
-
 // Utility function to create a slug from the title
 const createSlug = (title) => {
   return title
@@ -216,12 +227,15 @@ app.get('/blog/:slug', async (req, res) => {
     console.log(`User-Agent: ${req.headers['user-agent']}`);
     next();
   });
+
   // Serve static files
-app.use(express.static(path.join(__dirname, 'build')));
-// Catch-all route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
+  app.use(express.static(path.join(__dirname, 'build')));
+
+  // Catch-all route
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
+
   try {
     // Fetch blog data from Google Sheets
     const sheetId = '1LCc14doDmZdMUdFFSK475KefRJ2gbcP52cenKE0ZWgE';
@@ -262,7 +276,7 @@ app.get('*', (req, res) => {
         console.error('Error reading index.html:', err);
         return res.status(500).send('Internal Server Error');
       }
-      // Ensure imageUrl is correctly formatted
+
       let imageUrl = blogData.imageUrl;
       if (imageUrl) {
         if (imageUrl.startsWith('//')) {
@@ -271,19 +285,11 @@ app.get('*', (req, res) => {
           imageUrl = 'https://' + imageUrl;
         }
       } else {
-        // Default image if imageUrl is undefined or null
         imageUrl = 'https://www.nextgenprogrammer.com/images/nextgen-logo.png';
       }
 
-     
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
-        // Extract the og:image meta tag before replacement
-        const ogImageTagBefore = htmlData.match(/<meta\s+property=["']og:image["'][^>]*>/i);
-        console.log('OG Image Tag Before Replacement:', ogImageTagBefore ? ogImageTagBefore[0] : 'Not found');
-
-        app.set('trust proxy', true); // If behind a proxy/load balancer
-
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       // Inject the dynamic Open Graph metadata into the index.html
       htmlData = htmlData
         .replace(/<title>.*<\/title>/i, `<title>${blogData.title}</title>`)
@@ -301,16 +307,13 @@ app.get('*', (req, res) => {
         )
         .replace(
           /<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i,
-          `<meta property="og:image" content="${blogData.imageUrl}">`
+          `<meta property="og:image" content="${imageUrl}">`
         )
         .replace(
           /<meta property="og:url" content="[^"]*">/i,
-          `<meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">`
+          `<meta property="og:url" content="${protocol}://${req.get('host')}${req.originalUrl}">`
         );
-         // Extract the og:image meta tag after replacement
-        const ogImageTagAfter = htmlData.match(/<meta\s+property=["']og:image["'][^>]*>/i);
-        console.log('OG Image Tag After Replacement:', ogImageTagAfter ? ogImageTagAfter[0] : 'Not found');
-      // Send the modified index.html file
+
       res.send(htmlData);
     });
   } catch (error) {
