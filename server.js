@@ -51,30 +51,34 @@ const verifyToken = (req, res, next) => {
 
 const VERIFY_TOKEN = 'binarybeats'; // Set your verification token
 
-// Webhook verification route (GET request)
-app.get('/webhook', (req, res) => {
+// Webhook verification route (GET request) at /api/webhook
+app.get('/api/webhook', (req, res) => {
+  console.log('Webhook GET request received.');
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
+  console.log(`Mode: ${mode}, Token: ${token}, Challenge: ${challenge}`);
+
   // Verifying the token
   if (mode && token === VERIFY_TOKEN) {
+    console.log('Webhook verified successfully.');
     res.status(200).send(challenge);
   } else {
+    console.log('Webhook verification failed.');
     res.sendStatus(403);
   }
 });
 
-// Webhook event handling (POST request)
-app.post('/webhook', (req, res) => {
+// Webhook event handling (POST request) at /api/webhook
+app.post('/api/webhook', (req, res) => {
+  console.log('Webhook POST request received.');
   const body = req.body;
 
   if (body.object === 'page') {
     body.entry.forEach(entry => {
       const webhookEvent = entry.messaging[0];
       console.log('Received a webhook event:', webhookEvent);
-
-      // You can handle different events here, such as receiving messages, etc.
     });
     res.status(200).send('EVENT_RECEIVED');
   } else {
@@ -97,7 +101,6 @@ const sendFacebookMessage = async (recipientId, message) => {
     console.error('Error sending message:', error.response ? error.response.data : error.message);
   }
 };
-
 // --- Auth & API Endpoints ---
 
 // Login endpoint
