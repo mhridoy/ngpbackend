@@ -49,7 +49,7 @@ const verifyToken = (req, res, next) => {
 
 // --- Facebook Webhook Routes ---
 
-const VERIFY_TOKEN = 'binarybeats'; // Set your verification token
+const VERIFY_TOKEN = 'my_secure_token'; // Set your verification token
 
 // Webhook verification route (GET request)
 app.get('/webhook', (req, res) => {
@@ -75,7 +75,6 @@ app.post('/webhook', (req, res) => {
       console.log('Received a webhook event:', webhookEvent);
 
       // You can handle different events here, such as receiving messages, etc.
-      // For example, respond with a thank you message after form submission
     });
     res.status(200).send('EVENT_RECEIVED');
   } else {
