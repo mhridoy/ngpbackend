@@ -47,74 +47,6 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// --- Facebook Webhook Routes ---
-
-const VERIFY_TOKEN = 'binarybeats'; // Set your verification token
-
-// Webhook verification route (GET request) at /api/webhook
-app.get('/api/webhook', (req, res) => {
-  console.log('Webhook GET request received.');
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-
-  console.log(`Mode: ${mode}, Token: ${token}, Challenge: ${challenge}`);
-
-  // Verifying the token
-  if (mode && token === VERIFY_TOKEN) {
-    console.log('Webhook verified successfully.');
-    res.status(200).send(challenge);
-  } else {
-    console.log('Webhook verification failed.');
-    res.sendStatus(403);
-  }
-});
-
-// Webhook event handling (POST request) at /api/webhook
-app.post('/api/webhook', (req, res) => {
-  console.log('Webhook POST request received.');
-  const body = req.body;
-
-  if (body.object === 'page') {
-    body.entry.forEach(entry => {
-      entry.messaging.forEach(event => {
-        if (event.sender && event.sender.id) {
-          const psid = event.sender.id;  // Capture the PSID (Page-Scoped ID)
-          console.log('PSID:', psid);
-
-          // You can now store or use this PSID to send messages later
-          // For testing purposes, send a welcome message directly
-          sendFacebookMessage(psid, 'Welcome to our page! How can we assist you today?');
-        }
-      });
-    });
-    res.status(200).send('EVENT_RECEIVED');
-  } else {
-    res.sendStatus(404);
-  }
-});
-
-// Function to send Facebook Messenger message
-const sendFacebookMessage = async (recipientId, message) => {
-  if (!recipientId || typeof recipientId !== 'string') {
-    console.error('Invalid recipient ID');
-    return;
-  }
-
-  const token = process.env.PAGE_ACCESS_TOKEN; // Your Facebook page access token
-  const url = `https://graph.facebook.com/v12.0/me/messages?access_token=${token}`;
-  
-  try {
-    await axios.post(url, {
-      recipient: { id: recipientId },
-      message: { text: message }
-    });
-    console.log('Message sent successfully!');
-  } catch (error) {
-    console.error('Error sending message:', error.response ? error.response.data : error.message);
-  }
-};
-
 // --- Auth & API Endpoints ---
 
 // Login endpoint
@@ -160,10 +92,6 @@ app.post('/api/trial-class/register', async (req, res) => {
       message: 'Registration successful',
       registration: { id: docRef.id, ...registration },
     });
-
-    // Send Facebook Messenger message after successful registration
-    const psid = 'USER_PSID'; // You need to dynamically fetch or store the user's PSID
-    await sendFacebookMessage(psid, 'রেজিস্ট্রেশন সফল!, ফ্রি ক্লাসের জন্য রেজিস্ট্রেশন করার জন্য ধন্যবাদ। আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।');
 
   } catch (error) {
     console.error('Error registering:', error);
